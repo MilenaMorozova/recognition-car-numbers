@@ -1,4 +1,5 @@
 import copy
+import math
 
 import cv2
 import numpy as np
@@ -14,11 +15,6 @@ def find_location_of_number_plate(file_image_name) -> tuple:
 
     result = []
 
-    # for scale in np.arange(1.1, 20.1, 0.1):
-    #     for neighbors in range(2, 15):
-    #         russian_number_plate_rect = russian_number_cascade.detectMultiScale(image_copy, scaleFactor=scale, minNeighbors=neighbors)
-    #         if len(russian_number_plate_rect):
-    #             result.append([(scale, neighbors), russian_number_plate_rect])
     cropped_images = []
     russian_number_plate_rect = russian_number_cascade.detectMultiScale(origin.grayscale(), scaleFactor=1.2, minNeighbors=2)
 
@@ -33,7 +29,6 @@ def find_location_of_number_plate(file_image_name) -> tuple:
 
 
 def normalizing_image_of_number_plate_contours(cropped_images: list):
-    cropped_number_plates = []
 
     for i in cropped_images:
         # height, width, _ = i.shape
@@ -83,28 +78,25 @@ def normalizing_image_of_number_plate_hough_lines(cropped_images: list):
 
 
 def normalizing_image_of_number_plate_hough_lines_p(cropped_images: list):
-    for i in cropped_images:
-        edges = i.canny(50, 150)
+
+    for i in range(len(cropped_images)-1, -1, -1):
+        edges = cropped_images[i].canny(50, 150)
 
         min_line_length = 150
         max_line_gap = 30
 
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100,  min_line_length, max_line_gap)
-        print(lines)
-        if lines is not None:
-            find_two_main_lines(lines, copy.deepcopy(i))
-        else:
-            print('Увы')
-        # if lines is not None:
-        #     for line in lines:
-        #         for x1, y1, x2, y2 in line:
-        #             cv2.line(i.image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        # cv2.imshow("Hough lines P", i.image)
-        # cv2.waitKey(0)
+        if lines is not None:
+            cropped_images[i].set_bounds(find_two_main_lines(lines, copy.deepcopy(cropped_images[i])))
+        else:
+            # del cropped_images[i]
+            print('Увы')
 
 
 def find_two_main_lines(lines: list, image: Image):
+    result = []
+
     center_of_image_height = int(image.height/2)
 
     lines_part_up = [line for line in lines for _, y1, _, y2 in line if y1 < center_of_image_height and y2 < center_of_image_height]
@@ -118,12 +110,14 @@ def find_two_main_lines(lines: list, image: Image):
                                            for i, line in enumerate(part_of_lines) for x1, y1, _, _ in line]
 
             average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line for lines
+            result.append(average_line)
 
             cv2.line(image.image, (0, int(average_line[1])),
                      (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
 
-    cv2.imshow("TWO MAIN LINES", image.image)
-    cv2.waitKey(0)
+    # cv2.imshow("TWO MAIN LINES", image.image)
+    # cv2.waitKey(0)
+    return result
 
 
 def b(lines):
@@ -138,9 +132,47 @@ def b(lines):
     print('free members', free_members_of_lines)
 
 
+def rotate_image(cropped_images: list):
+    for i, image in enumerate(cropped_images):
+        max_k = np.mean([abs(j[0]) for j in image.bounds])
+        angle = (math.atan(max_k)*180) / np.pi
+
+        image_center = tuple(np.array(image.image.shape[1::-1]) / 2)
+        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
+        result = cv2.warpAffine(image.image, rot_mat, image.image.shape[1::-1], flags=cv2.INTER_LINEAR)
+
+        cropped_images[i] = Image(result)
+        # cv2.imshow("Rotated image", cropped_images[i].image)
+        # cv2.waitKey(0)
+
+
+def crop_image_by_bounds(image: Image):
+    center_height_of_image = int(image.height/2)
+    image_bounds = image.bounds
+
+    if len(image_bounds) == 2:
+        y1 = int(image_bounds[0][1])
+        y2 = int(image_bounds[1][0]*image.width + image_bounds[1][1])
+        image = image.crop(0, y1, image.width, y2)
+
+    elif len(image_bounds) == 1:
+        if int(image_bounds[0][0]*image.width/2 + image_bounds[0][1]) > center_height_of_image:
+            image = image.crop(0, int(image_bounds[0][1]), image.width, image.height)
+        else:
+            image = image.crop(0, 0, image.width, int(image_bounds[0][0]*image.width + image_bounds[0][1]))
+
+    # cv2.imshow("Cropped image", image.image)
+    # cv2.waitKey(0)
+
+
 if __name__ == '__main__':
-    cropped_images, result = find_location_of_number_plate('images\\car (2).jpg')
+    cropped_images, result = find_location_of_number_plate('images\\car (6).jpg')
 
     # normalizing_image_of_number_plate_contours(copy.deepcopy(cropped_images))
     # normalizing_image_of_number_plate_hough_lines(copy.deepcopy(cropped_images))
-    normalizing_image_of_number_plate_hough_lines_p(copy.deepcopy(cropped_images))
+    normalizing_image_of_number_plate_hough_lines_p(cropped_images)
+
+    rotate_image(cropped_images)
+    normalizing_image_of_number_plate_hough_lines_p(cropped_images)
+    for i in cropped_images:
+        crop_image_by_bounds(i)

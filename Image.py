@@ -7,6 +7,7 @@ class Image:
 
     def __init__(self, image):
         self.image = image
+        self.bounds = None
 
     @property
     def width(self):
@@ -29,3 +30,6 @@ class Image:
 
     def canny(self, threshold1: float, threshold2: float, aperture_size: int = 3):
         return cv2.Canny(self.grayscale(), threshold1, threshold2, apertureSize=aperture_size)
+
+    def set_bounds(self, bounds):
+        self.bounds = bounds
