@@ -27,8 +27,8 @@ def find_location_of_number_plate(file_image_name) -> tuple:
             cropped_images.append(origin.crop(x, y, x+w, y+h))
             cv2.rectangle(origin.image, (x, y), (x + w, y + h), (0, 255, 0), 10)
 
-    cv2.imshow("Original image", origin.image)
-    cv2.waitKey(0)
+    # cv2.imshow("Original image", origin.image)
+    # cv2.waitKey(0)
     return cropped_images, result
 
 
@@ -90,18 +90,57 @@ def normalizing_image_of_number_plate_hough_lines_p(cropped_images: list):
         max_line_gap = 30
 
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100,  min_line_length, max_line_gap)
+        print(lines)
         if lines is not None:
-            for line in lines:
-                for x1, y1, x2, y2 in line:
-                    cv2.line(i.image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            find_two_main_lines(lines, copy.deepcopy(i))
+        else:
+            print('Увы')
+        # if lines is not None:
+        #     for line in lines:
+        #         for x1, y1, x2, y2 in line:
+        #             cv2.line(i.image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        cv2.imshow("Hough lines P", i.image)
-        cv2.waitKey(0)
+        # cv2.imshow("Hough lines P", i.image)
+        # cv2.waitKey(0)
+
+
+def find_two_main_lines(lines: list, image: Image):
+    center_of_image_height = int(image.height/2)
+
+    lines_part_up = [line for line in lines for _, y1, _, y2 in line if y1 < center_of_image_height and y2 < center_of_image_height]
+    lines_part_down = [line for line in lines for _, y1, _, y2 in line if y1 > center_of_image_height and y2 > center_of_image_height]
+
+    for part_of_lines in [lines_part_up, lines_part_down]:
+        if part_of_lines:
+            tangent_of_lines = [(y2 - y1)/(x2 - x1) for line in part_of_lines for x1, y1, x2, y2 in line]
+
+            free_members_of_lines = [y1 - tangent_of_lines[i] * x1
+                                           for i, line in enumerate(part_of_lines) for x1, y1, _, _ in line]
+
+            average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line for lines
+
+            cv2.line(image.image, (0, int(average_line[1])),
+                     (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
+
+    cv2.imshow("TWO MAIN LINES", image.image)
+    cv2.waitKey(0)
+
+
+def b(lines):
+    tangent_of_lines = [(y2 - y1) / (x2 - x1) for line in lines for x1, y1, x2, y2 in
+                        line]
+    print('tangets', tangent_of_lines)
+
+    for i, line in enumerate(lines):
+        for x1, y1, _, _ in line:
+            free_members_of_lines = [y1 - tangent_of_lines[i] * x1]
+
+    print('free members', free_members_of_lines)
 
 
 if __name__ == '__main__':
-    cropped_images, result = find_location_of_number_plate('images\\car (8).jpg')
+    cropped_images, result = find_location_of_number_plate('images\\car (2).jpg')
 
-    normalizing_image_of_number_plate_contours(copy.deepcopy(cropped_images))
-    normalizing_image_of_number_plate_hough_lines(copy.deepcopy(cropped_images))
+    # normalizing_image_of_number_plate_contours(copy.deepcopy(cropped_images))
+    # normalizing_image_of_number_plate_hough_lines(copy.deepcopy(cropped_images))
     normalizing_image_of_number_plate_hough_lines_p(copy.deepcopy(cropped_images))
