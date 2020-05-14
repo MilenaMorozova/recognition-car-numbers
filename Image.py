@@ -8,6 +8,8 @@ class Image:
     def __init__(self, image):
         self.image = image
         self.bounds = None
+        self.brightness = None
+        self.characters_on_image = None
 
     @property
     def width(self):
@@ -33,3 +35,20 @@ class Image:
 
     def set_bounds(self, bounds):
         self.bounds = bounds
+
+    def set_image(self, image):
+        self.image = image
+
+    def set_brightness(self, brightness):
+        self.brightness = brightness
+
+    def binarize(self):
+        gray_image = self.grayscale()
+        center_column = gray_image[:, int(self.width / 2)]
+
+        min_pix = int(min(center_column))
+        max_pix = int(max(center_column))
+        threshold = (min_pix + max_pix) / 2.
+
+        _, thresh1 = cv2.threshold(self.image, threshold, 255, cv2.THRESH_BINARY)
+        self.set_image(thresh1)
