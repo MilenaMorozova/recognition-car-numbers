@@ -10,7 +10,6 @@ class Image:
         self.image = image
         self.bounds = None
         self.brightness = self.calc_brightness()
-        self.characters_on_image = None
 
     @property
     def width(self):
@@ -43,14 +42,13 @@ class Image:
 
     def binarize(self):
         gray_image = self.grayscale()
-        center_column = gray_image[:, int(self.width / 2)]
 
-        min_pix = int(min(center_column))
-        max_pix = int(max(center_column))
-        threshold = (min_pix + max_pix) / 2.
+        dark_pix = int(np.min(gray_image))
+        bright_pix = int(np.max(gray_image))
 
-        _, thresh1 = cv2.threshold(self.image, threshold, 255, cv2.THRESH_BINARY)
-        self.set_image(thresh1)
+        threshold = (dark_pix + bright_pix) / 2
+        _, binarized_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
+        self.image = binarized_image
 
     def calc_brightness(self):
         if len(self.image.shape) == 3:
@@ -58,3 +56,12 @@ class Image:
             return [np.mean(gray_image[:, i]) for i in range(self.width)]
         else:
             return [np.mean(self.image[:, i]) for i in range(self.width)]
+
+    def is_black_stick(self):
+        if self.width < int(0.1 * self.height) \
+                and np.sum(self.image == 0) >= 0.2*self.width*self.height:
+            return True
+        for i in range(self.width):
+            if np.sum(self.image[:, i] == 0) < int(0.8*self.height):
+                return False
+        return True

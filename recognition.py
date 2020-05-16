@@ -11,6 +11,7 @@ class RecognitionCarPlate:
     def __init__(self):
         self.origin = None
         self.cropped_images = None
+        self.characters_in_image = []
 
     def load_image(self, file_image_name):
         image = cv2.imread(file_image_name)
@@ -213,37 +214,37 @@ class RecognitionCarPlate:
             return image.crop(borders[1], 0, borders[0], image.height)
         return image.crop(borders[0], 0, borders[1], image.height)
 
-    def crop_side_edges_of_the_image_2(self, image: Image, index: int):
+    def crop_side_edges_of_the_image_2(self, image: Image):
         # minimum_left = np.argmin(image.brightness[:int(len(image.brightness)*0.25)])
         # minimum_right = np.argmin(list(reversed(image.brightness))[:int(len(image.brightness)*0.25)])
         # img = image.crop(minimum_left, 0, len(image.brightness) - minimum_right-1, image.height)
         # self.image_show('CROPPED BY THE EDGES', img.image)
         quarter = int(len(image.brightness)*0.25)
 
-        minimum_left = np.argmin(image.brightness[:quarter])
-        minimum_right = len(image.brightness) - 1 - np.argmin(list(reversed(image.brightness))[:quarter])
-        minimum_center = quarter + np.argmin(image.brightness[quarter:-quarter])
+        i_minimum_left = np.argmin(image.brightness[:quarter])
+        i_minimum_right = len(image.brightness) - 1 - np.argmin(list(reversed(image.brightness))[:quarter])
+        i_minimum_center = quarter + np.argmin(image.brightness[quarter:-quarter])
 
-        img = None
-        if image.brightness[minimum_right] < image.brightness[minimum_center]:
-            img = image.crop(0, 0, minimum_right, image.height)
-            # self.image_show('CROPPED right', img.image)
+        result_image = None
+        # crop right edge
+        if image.brightness[i_minimum_right] < image.brightness[i_minimum_center]:
+            result_image = image.crop(0, 0, i_minimum_right, image.height)
+            # self.image_show('CROPPED right', result_image.image)
 
-        if image.brightness[minimum_left] < image.brightness[minimum_center]:
-            if img is None:
-                img = image.crop(minimum_left, 0, image.width, image.height)
+        # crop left edge
+        if image.brightness[i_minimum_left] < image.brightness[i_minimum_center]:
+            if result_image is None:
+                result_image = image.crop(i_minimum_left, 0, image.width, image.height)
             else:
-                img = img.crop(minimum_left, 0, img.width, img.height)
-            # self.image_show('CROPPED left', img.image)
+                result_image = result_image.crop(i_minimum_left, 0, result_image.width, result_image.height)
+            # self.image_show('CROPPED left', result_image.image)
 
-        if img is not None:
-            self.cropped_images[index] = img
-            self.binarize_number_plate(img)
-            # self.split_number_plate_into_characters(self.cropped_images[index])
+        if result_image is not None:
+            return result_image
         else:
-            self.binarize_number_plate(image)
+            return image
 
-    def split_number_plate_into_characters(self, image: Image):
+    def split_number_plate_into_characters_by_certain_dist(self, image: Image):
         wdth = image.width / 520  # width of the russian number plate is 520mm
         hght = image.height / 112  # height of the russian number plate is 112mm
         image.characters_on_image = []
@@ -264,19 +265,10 @@ class RecognitionCarPlate:
         self.image_show('REGION', region.image)
         self.hist(region.brightness)
 
-    def binarize_number_plate(self, image: Image):
-        gray_image = image.grayscale()
-        dark_pix = int(np.min(gray_image))
-        bright_pix = int(np.max(gray_image))
-
-        threshold = (dark_pix+bright_pix)/2
-        _, binarized_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
-
-        image.set_image(binarized_image)
-        self.image_show("BINARIZED IMAGE", image.image)
-        self.splitting_binarized_image_into_numbers(image)
-
     def splitting_binarized_image_into_numbers(self, image: Image) -> list:
+        if not image:
+            return []
+
         start = 0
         for i in range(int(image.height/2), -1, -1):
             if np.sum(image.image[i] == 0) > 0.8*image.width:
@@ -290,7 +282,9 @@ class RecognitionCarPlate:
                 break
 
         image = image.crop(0, start, image.width, end)
+
         left_edge = None
+        left_edge_of_region = None
         numbers = []
 
         for i in range(image.width):
@@ -304,51 +298,86 @@ class RecognitionCarPlate:
                 if not left_edge:
                     continue
                 else:
-                    numbers.append(image.crop(left_edge, 0, i, image.height))
+                    char_image = image.crop(left_edge, 0, i, image.height)
+
+                    if left_edge_of_region is None:
+                        numbers.append(char_image)
+
+                    if char_image.is_black_stick() and len(numbers) > 1:
+                        if left_edge_of_region is None:
+                            left_edge_of_region = i
+                        else:
+                            char_image = image.crop(left_edge_of_region, 0, left_edge, image.height)
+                            numbers.append(char_image)
+                            left_edge_of_region = None
+                            break
                     left_edge = None
-        if left_edge:
-            numbers.append(image.crop(left_edge, 0, image.width, image.height))
 
-        for number in numbers:
-            self.image_show("NUMBERS", number.image)
+        if left_edge_of_region:
+            char_image = image.crop(left_edge_of_region, 0, left_edge if left_edge else image.width, image.height)
+            numbers.append(char_image)
 
-    def normalize_finded_symbols(self, image: Image):
-        if image.characters_on_image is None:
-            return
+        return numbers
 
-        for i, img in enumerate(image.characters_on_image):
-            self.image_show('SYMBOL BEFORE BINARIZE', img.image)
-            img.binarize()
-            self.image_show('AFTER BINARIZE', img.image)
-            image.characters_on_image[i] = self.crop_symbol_by_edges(img)
-            self.image_show('CROPPED BINARIZED IMAGE', image.characters_on_image[i].image)
+        # for number in numbers:
+        #     self.image_show("NUMBERS", number.image)
 
     @staticmethod
-    def crop_symbol_by_edges(image: Image):
+    def process_region(region: Image):
+        for i in range(int(region.height*0.4), region.height):
+            if np.sum(region.image[i] == 255) == region.width:
+                region = region.crop(0, 0, region.width, i)
+                return region
+
+    @staticmethod
+    def crop_binarized_char_by_edges(image: Image):
+        if image is None:
+            return image
         result = image
         # up
         for i in range(int(result.height / 2) - 1, -1, -1):
-            if np.mean(result.image[i][:, 0]) == 255.:
+            if np.mean(result.image[i]) == 255.:
                 result = result.crop(0, i, result.width, result.height)
                 break
         # down
         for i in range(int(result.height / 2), result.height):
-            if np.mean(result.image[i][:, 0]) == 255.:
+            if np.mean(result.image[i]) == 255.:
                 result = result.crop(0, 0, result.width, i)
                 break
 
         # left
         for i in range(int(result.width / 2) - 1, -1, -1):
-            if np.mean(result.image[:, i][:, 0]) == 255.:
+            if np.mean(result.image[:, i]) == 255.:
                 result = result.crop(i, 0, result.width, result.height)
                 break
 
         # right
         for i in range(int(result.width / 2), result.width):
-            if np.mean(result.image[:, i][:, 0]) == 255.:
+            if np.mean(result.image[:, i]) == 255.:
                 result = result.crop(0, 0, i, result.height)
                 break
         return result
+
+    def prepare_symbols_for_recognition(self, characters: list):
+        if not characters:
+            print('CHARACTERS ARE NOT FOUND')
+            return
+
+        characters[-1] = self.process_region(characters[-1])
+
+        region_characters = self.splitting_binarized_image_into_numbers(characters[-1])
+        b = characters.pop()
+        a = self.splitting_binarized_image_into_numbers(b)
+        if a:
+            for number in a:
+                number = self.crop_binarized_char_by_edges(number)
+                # TODO проблема с последним изображением, у него width = 0
+                self.image_show("NUMBERS OF REGION", number.image)
+
+        for i, char in enumerate(characters):
+            if characters[i]:
+                characters[i] = self.crop_binarized_char_by_edges(char)
+                self.image_show("CROPPED SYMBOLS", characters[i].image)
 
     def run(self):
         # self.image_show("Origin", self.origin.image)
@@ -363,5 +392,10 @@ class RecognitionCarPlate:
 
             self.increase_image_contrast(self.cropped_images[i])
 
-            self.crop_side_edges_of_the_image_2(self.cropped_images[i], i)
-            # self.normalize_finded_symbols(self.cropped_images[i])
+            self.cropped_images[i] = self.crop_side_edges_of_the_image_2(self.cropped_images[i])
+
+            self.cropped_images[i].binarize()
+            self.image_show("BINARIZED NUMBER", self.cropped_images[i].image)
+            self.characters_in_image.append(self.splitting_binarized_image_into_numbers(self.cropped_images[i]))
+            self.prepare_symbols_for_recognition(self.characters_in_image[i])
+
