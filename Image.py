@@ -1,6 +1,7 @@
 import copy
 
 import cv2
+import numpy as np
 
 
 class Image:
@@ -8,7 +9,7 @@ class Image:
     def __init__(self, image):
         self.image = image
         self.bounds = None
-        self.brightness = None
+        self.brightness = self.calc_brightness()
         self.characters_on_image = None
 
     @property
@@ -38,9 +39,7 @@ class Image:
 
     def set_image(self, image):
         self.image = image
-
-    def set_brightness(self, brightness):
-        self.brightness = brightness
+        self.brightness = self.calc_brightness()
 
     def binarize(self):
         gray_image = self.grayscale()
@@ -52,3 +51,10 @@ class Image:
 
         _, thresh1 = cv2.threshold(self.image, threshold, 255, cv2.THRESH_BINARY)
         self.set_image(thresh1)
+
+    def calc_brightness(self):
+        if len(self.image.shape) == 3:
+            gray_image = self.grayscale()
+            return [np.mean(gray_image[:, i]) for i in range(self.width)]
+        else:
+            return [np.mean(self.image[:, i]) for i in range(self.width)]

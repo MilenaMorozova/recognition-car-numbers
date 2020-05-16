@@ -165,15 +165,6 @@ class RecognitionCarPlate:
         plt.show()
 
     @staticmethod
-    def calc_pix_brightness(image: Image):
-        if len(image.image.shape) == 3:
-            gray_image = image.grayscale()
-            pixel_brightness = [np.mean(gray_image[:, i]) for i in range(gray_image.shape[1])]
-        else:
-            pixel_brightness = [np.mean(image.image[:, i]) for i in range(image.image.shape[1])]
-        image.set_brightness(pixel_brightness)
-
-    @staticmethod
     def crop_side_edges_of_the_image(image: Image) -> Image:
         minimum = min(image.brightness)
         maximum = max(image.brightness)
@@ -266,13 +257,11 @@ class RecognitionCarPlate:
         region = image.crop(int(wdth*395), int(hght*10), int(wdth*495), int(hght*90))
 
         for symbol in [first_symbol, second_symbol, third_symbol, fourth_symbol, fifth_symbol, sixth_symbol]:
-            self.calc_pix_brightness(symbol)
-            image.characters_on_image.append(symbol)
+            image.characters_on_image.append(symbol.brightness)
             # self.hist(symbol.brightness)
             # self.image_show(str(len(image.characters_on_image))+'SYMBOL', symbol.image)
 
         self.image_show('REGION', region.image)
-        self.calc_pix_brightness(region)
         self.hist(region.brightness)
 
     def binarize_number_plate(self, image: Image):
@@ -284,7 +273,6 @@ class RecognitionCarPlate:
         _, binarized_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
 
         image.set_image(binarized_image)
-        self.calc_pix_brightness(image)
         self.image_show("BINARIZED IMAGE", image.image)
         self.splitting_binarized_image_into_numbers(image)
 
@@ -307,7 +295,6 @@ class RecognitionCarPlate:
 
         for i in range(image.width):
             column = image.image[int(0.25 * image.height):int(-0.1 * image.height), i]
-            # column = image.image[start+int(0.25*number_plate_height):end-int(0.1*number_plate_height), i]
             if 0 in column:
                 if left_edge:
                     continue
@@ -375,9 +362,6 @@ class RecognitionCarPlate:
             self.cropped_images[i] = self.crop_image_by_bounds(self.cropped_images[i])
 
             self.increase_image_contrast(self.cropped_images[i])
-            # self.image_show('CONTRAST', self.cropped_images[i].image)
-            self.calc_pix_brightness(self.cropped_images[i])
-            # self.hist(self.cropped_images[i].brightness)
 
             self.crop_side_edges_of_the_image_2(self.cropped_images[i], i)
             # self.normalize_finded_symbols(self.cropped_images[i])
