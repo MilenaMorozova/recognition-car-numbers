@@ -20,6 +20,10 @@ class Image:
     def height(self):
         return self.__image.shape[0]
 
+    def show(self, title: str):
+        cv2.imshow(title, self.image)
+        cv2.waitKey(0)
+
     def grayscale(self):
         return cv2.cvtColor(self.__image, cv2.COLOR_BGR2GRAY)
 
