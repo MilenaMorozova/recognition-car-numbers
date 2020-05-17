@@ -11,7 +11,7 @@ class RecognitionCarPlate:
     def __init__(self):
         self.origin = None
         self.cropped_images = None
-        self.characters_in_image = []
+        self.car_numbers = []
 
     def load_image(self, file_image_name):
         image = cv2.imread(file_image_name)
@@ -108,7 +108,8 @@ class RecognitionCarPlate:
                 cv2.line(image_copy, (0, int(average_line[1])),
                          (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
 
-        image.set_bounds(bounds)
+        image.bounds = bounds
+        # image.set_bounds(bounds)
         # self.image_show("TWO MAIN LINES", image_copy)
 
     @staticmethod
@@ -123,7 +124,8 @@ class RecognitionCarPlate:
         rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
         result = cv2.warpAffine(image.image, rot_mat, image.image.shape[1::-1], flags=cv2.INTER_LINEAR)
 
-        image.set_image(result)
+        image.image = result
+        # image.set_image(result)
 
     @staticmethod
     def crop_image_by_bounds(image: Image) -> Image:
@@ -158,7 +160,8 @@ class RecognitionCarPlate:
 
         # Converting image from LAB Color model to RGB model
         final = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
-        image.set_image(final)
+        image.image = final
+        # image.set_image(final)
 
     @staticmethod
     def hist(brightness: list):
@@ -333,6 +336,7 @@ class RecognitionCarPlate:
     def crop_binarized_char_by_edges(image: Image):
         if image is None:
             return image
+
         result = image
         # up
         for i in range(int(result.height / 2) - 1, -1, -1):
@@ -371,8 +375,8 @@ class RecognitionCarPlate:
         if a:
             for number in a:
                 number = self.crop_binarized_char_by_edges(number)
-                # TODO проблема с последним изображением, у него width = 0
-                self.image_show("NUMBERS OF REGION", number.image)
+                if number.height and number.width:
+                    self.image_show("NUMBERS OF REGION", number.image)
 
         for i, char in enumerate(characters):
             if characters[i]:
@@ -396,6 +400,6 @@ class RecognitionCarPlate:
 
             self.cropped_images[i].binarize()
             self.image_show("BINARIZED NUMBER", self.cropped_images[i].image)
-            self.characters_in_image.append(self.splitting_binarized_image_into_numbers(self.cropped_images[i]))
-            self.prepare_symbols_for_recognition(self.characters_in_image[i])
+            self.car_numbers.append(self.splitting_binarized_image_into_numbers(self.cropped_images[i]))
+            self.prepare_symbols_for_recognition(self.car_numbers[i])
 
