@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 
 from CarNumber import CarNumber
 from Image import Image
+from TestDataCreator import TestDataCreator
 
 
 class RecognitionCarPlate:
@@ -120,11 +121,7 @@ class RecognitionCarPlate:
         max_k = np.mean([line[0] for line in image.bounds])
         angle = (math.atan(max_k) * 180) / np.pi
 
-        image_center = tuple(np.array(image.image.shape[1::-1]) / 2)
-        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
-        result = cv2.warpAffine(image.image, rot_mat, image.image.shape[1::-1], flags=cv2.INTER_LINEAR)
-
-        image.image = result
+        image.rotate(angle)
 
     @staticmethod
     def crop_image_by_bounds(image: Image) -> Image:
@@ -268,8 +265,8 @@ class RecognitionCarPlate:
 
     @staticmethod
     def splitting_binarized_image_into_numbers(image: Image) -> tuple:
-        if not image:
-            return []
+        # if not image:
+        #     return []
 
         start = 0
         for i in range(int(image.height/2), -1, -1):
@@ -325,11 +322,28 @@ class RecognitionCarPlate:
         #     number.show("NUMBERS")
 
     @staticmethod
-    def process_region(region: Image):
+    def crop_region(region: Image) -> Image:
+        # if region is None:
+        #     return None
+
         for i in range(int(region.height*0.4), region.height):
             if np.sum(region.image[i] == 255) == region.width:
-                region = region.crop(0, 0, region.width, i)
-                return region
+                return region.crop(0, 0, region.width, i)
+
+    def process_region(self, region: Image) -> list:
+        # if region is None:
+        #     return region
+
+        region_characters, _ = self.splitting_binarized_image_into_numbers(region)
+        for i, char in enumerate(region_characters):
+            if char:
+                region_characters[i] = self.crop_binarized_char_by_edges(char)
+
+        for i in range(len(region_characters)-1, -1, -1):
+            if region_characters[i] is None:
+                del region_characters[i]
+
+        return region_characters
 
     @staticmethod
     def crop_binarized_char_by_edges(image: Image):
@@ -362,31 +376,23 @@ class RecognitionCarPlate:
         return result
 
     def prepare_symbols_for_recognition(self, car_number: CarNumber):
-        if not car_number.series_and_registration_num and not car_number.region:
+        if car_number.is_empty():
             print('CHARACTERS ARE NOT FOUND')
             return
-
+        # TODO избавиться от None
         car_number.region = self.process_region(car_number.region)
-
-        car_number.region, _ = self.splitting_binarized_image_into_numbers(car_number.region)
-
-        # if car_number.region:
-        #     for number in car_number.region:
-        #         number = self.crop_binarized_char_by_edges(number)
-        #         if number.height and number.width:
-        #             number.show("NUMBERS OF REGION")
+        test_data_creator = TestDataCreator()
 
         for i, char in enumerate(car_number.series_and_registration_num):
-            if char:
-                car_number.series_and_registration_num[i] = self.crop_binarized_char_by_edges(char)
-                if car_number.series_and_registration_num[i].height and car_number.series_and_registration_num[i].width:
-                    car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
+            car_number.series_and_registration_num[i] = self.crop_binarized_char_by_edges(char)
+            if car_number.series_and_registration_num[i]:
+                car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
+                # test_data_creator.run(car_number.series_and_registration_num[i])
 
         for i, char in enumerate(car_number.region):
             if char:
-                car_number.region[i] = self.crop_binarized_char_by_edges(char)
-                if car_number.region[i].height and car_number.region[i].width:
-                    car_number.region[i].show("CROPPED SYMBOLS REGION")
+                car_number.region[i].show("CROPPED SYMBOLS REGION")
+                # test_data_creator.run(car_number.region[i])
 
     def run(self):
         # self.origin.show("Origin")

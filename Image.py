@@ -7,10 +7,11 @@ import numpy as np
 class Image:
 
     def __init__(self, image):
-        self.brightness = None
         self.bounds = None
+        self.brightness = None
+        self.__image = None
 
-        self.__image = image
+        self.image = image
 
     @property
     def width(self):
@@ -46,6 +47,11 @@ class Image:
     def image(self, value):
         self.__image = value
         self.brightness = self.calc_brightness()
+
+    def rotate(self, angle):
+        image_center = (self.width/2, self.height/2)
+        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
+        self.image = cv2.warpAffine(self.image, rot_mat, (self.width, self.height), flags=cv2.INTER_LINEAR)
 
     def binarize(self):
         gray_image = self.grayscale()
