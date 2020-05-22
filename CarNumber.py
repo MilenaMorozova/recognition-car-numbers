@@ -4,25 +4,16 @@ from Image import Image
 class CarNumber:
     def __init__(self, image: Image):
         self.image = image
+        self.region_image = None
+
         self.series_and_registration_num = []
         self.region = []
 
-    def remove_nan_from_series_reg_num(self):
-        for i in range(len(self.series_and_registration_num)-1, -1, -1):
-            if not self.series_and_registration_num[i].image:
-                del self.series_and_registration_num[i]
-
-    def remove_nan_from_region(self):
-        for i in range(len(self.region)-1, -1, -1):
-            if not self.region[i].image:
-                del self.region[i]
-
-    def remove_all_nan(self):
-        self.remove_nan_from_region()
-        self.remove_nan_from_series_reg_num()
-
     def is_empty(self):
-        return self.series_and_registration_num and self.region
+        return not self.series_and_registration_num and not self.region
+
+    def is_valid(self):
+        return self.region_image and len(self.series_and_registration_num) >= 6
 
     def show_region(self):
         for image in self.region:
@@ -31,3 +22,19 @@ class CarNumber:
     def show_series_and_registration_num(self):
         for image in self.series_and_registration_num:
             image.show('SERIES AND REGISTRATION NUMBER')
+
+    def remove_empty_images_from_region(self):
+        for i in range(len(self.region)-1, -1, -1):
+            if self.region[i].is_empty():
+                del self.region[i]
+                print("delete from region")
+
+    def remove_empty_images_from_series_reg_num(self):
+        for i in range(len(self.series_and_registration_num)-1, -1, -1):
+            if self.series_and_registration_num[i].is_empty():
+                del self.series_and_registration_num[i]
+                print("delete from series")
+
+    def remove_all_empty_images(self):
+        self.remove_empty_images_from_region()
+        self.remove_empty_images_from_series_reg_num()
