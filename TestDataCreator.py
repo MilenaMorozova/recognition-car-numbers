@@ -4,6 +4,8 @@ import cv2
 
 from Image import Image
 
+# TODO увеличить объём выборки(переворот 0, 6, 9), попробовать повернуть на немного картинки
+
 
 class TestDataCreator:
 

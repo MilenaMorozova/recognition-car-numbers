@@ -78,3 +78,6 @@ class Image:
             if np.sum(self.__image[:, i] == 0) < int(0.8 * self.height):
                 return False
         return True
+
+    def is_empty(self):
+        return self.width == 0 or self.height == 0

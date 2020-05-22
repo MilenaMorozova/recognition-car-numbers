@@ -82,8 +82,10 @@ class RecognitionCarPlate:
 
         if lines is not None:
             self.find_two_main_lines(lines, image)
+            return True
         else:
-            print('Увы')
+            print('Увы, линии не найдены')
+            return False
 
     @staticmethod
     def find_two_main_lines(lines: list, image: Image):
@@ -265,9 +267,6 @@ class RecognitionCarPlate:
 
     @staticmethod
     def splitting_binarized_image_into_numbers(image: Image) -> tuple:
-        # if not image:
-        #     return []
-
         start = 0
         for i in range(int(image.height/2), -1, -1):
             if np.sum(image.image[i] == 0) > 0.8*image.width:
@@ -321,35 +320,21 @@ class RecognitionCarPlate:
         # for number in series_and_reg_num:
         #     number.show("NUMBERS")
 
-    @staticmethod
-    def crop_region(region: Image) -> Image:
-        # if region is None:
-        #     return None
-
-        for i in range(int(region.height*0.4), region.height):
-            if np.sum(region.image[i] == 255) == region.width:
-                return region.crop(0, 0, region.width, i)
-
     def process_region(self, region: Image) -> list:
-        # if region is None:
-        #     return region
 
         region_characters, _ = self.splitting_binarized_image_into_numbers(region)
         for i, char in enumerate(region_characters):
-            if char:
+            if not char.is_empty():
                 region_characters[i] = self.crop_binarized_char_by_edges(char)
 
         for i in range(len(region_characters)-1, -1, -1):
-            if region_characters[i] is None:
+            if region_characters[i].is_empty():
                 del region_characters[i]
 
         return region_characters
 
     @staticmethod
     def crop_binarized_char_by_edges(image: Image):
-        if image is None:
-            return image
-
         result = image
         # up
         for i in range(int(result.height / 2) - 1, -1, -1):
@@ -376,33 +361,34 @@ class RecognitionCarPlate:
         return result
 
     def prepare_symbols_for_recognition(self, car_number: CarNumber):
-        if car_number.is_empty():
-            print('CHARACTERS ARE NOT FOUND')
-            return
-        # TODO избавиться от None
-        car_number.region = self.process_region(car_number.region)
+        car_number.region = self.process_region(car_number.region_image)
         test_data_creator = TestDataCreator()
 
-        for i, char in enumerate(car_number.series_and_registration_num):
+        for i in range(len(car_number.series_and_registration_num)-1, -1, -1):
+            char = car_number.series_and_registration_num[i]
             car_number.series_and_registration_num[i] = self.crop_binarized_char_by_edges(char)
-            if car_number.series_and_registration_num[i]:
-                car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
-                # test_data_creator.run(car_number.series_and_registration_num[i])
 
-        for i, char in enumerate(car_number.region):
-            if char:
-                car_number.region[i].show("CROPPED SYMBOLS REGION")
-                # test_data_creator.run(car_number.region[i])
+            if car_number.series_and_registration_num[i].is_empty():
+                del car_number.series_and_registration_num[i]
+                continue
+
+            car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
+            # test_data_creator.run(car_number.series_and_registration_num[i])
+
+        for char in car_number.region:
+            char.show("CROPPED SYMBOLS REGION")
+            # test_data_creator.run(car_number.region[i])
 
     def run(self):
         # self.origin.show("Origin")
         self.find_number_plates_on_origin_image()
-        for i, car_number in enumerate(self.car_numbers):
-
-            self.normalizing_image_of_number_plate_hough_lines_p(car_number.image)
-            self.rotate_image(car_number.image)
-            self.normalizing_image_of_number_plate_hough_lines_p(car_number.image)
-            car_number.image = self.crop_image_by_bounds(car_number.image)
+        for i in range(len(self.car_numbers)-1, -1, -1):
+            car_number = self.car_numbers[i]
+            print(i)
+            if self.normalizing_image_of_number_plate_hough_lines_p(car_number.image):
+                self.rotate_image(car_number.image)
+                self.normalizing_image_of_number_plate_hough_lines_p(car_number.image)
+                car_number.image = self.crop_image_by_bounds(car_number.image)
 
             self.increase_image_contrast(car_number.image)
 
@@ -410,6 +396,13 @@ class RecognitionCarPlate:
 
             car_number.image.binarize()
             car_number.image.show("BINARIZED NUMBER")
-            car_number.series_and_registration_num, car_number.region \
+
+            car_number.series_and_registration_num, car_number.region_image \
                 = self.splitting_binarized_image_into_numbers(car_number.image)
+            car_number.remove_all_empty_images()
+
+            if not car_number.is_valid():
+                del self.car_numbers[i]
+                continue
+
             self.prepare_symbols_for_recognition(car_number)
