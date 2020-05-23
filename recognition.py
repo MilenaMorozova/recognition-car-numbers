@@ -281,24 +281,25 @@ class RecognitionCarPlate:
 
         image = image.crop(0, start, image.width, end)
 
-        left_edge = None
+        left_edge_of_char = None
         series_and_reg_num = []
 
+        # TODO сделать обрезку белому месту вместо чёрной палки
         left_edge_of_region = None
         region = None
 
         for i in range(image.width):
             column = image.image[int(0.25 * image.height):int(-0.1 * image.height), i]
             if 0 in column:
-                if left_edge:
+                if left_edge_of_char:
                     continue
                 else:
-                    left_edge = i
+                    left_edge_of_char = i
             else:
-                if not left_edge:
+                if not left_edge_of_char:
                     continue
                 else:
-                    char_image = image.crop(left_edge, 0, i, image.height)
+                    char_image = image.crop(left_edge_of_char, 0, i, image.height)
 
                     if left_edge_of_region is None:
                         series_and_reg_num.append(char_image)
@@ -307,20 +308,26 @@ class RecognitionCarPlate:
                         if left_edge_of_region is None:
                             left_edge_of_region = i
                         else:
-                            region = image.crop(left_edge_of_region, 0, left_edge, image.height)
+                            region = image.crop(left_edge_of_region, 0, left_edge_of_char, image.height)
                             left_edge_of_region = None
                             break
-                    left_edge = None
+
+                    left_edge_of_char = None
 
         if left_edge_of_region:
-            region = image.crop(left_edge_of_region, 0, left_edge, image.height)
-
-        return series_and_reg_num, region
+            region = image.crop(left_edge_of_region, 0, left_edge_of_char, image.height)
 
         # for number in series_and_reg_num:
         #     number.show("NUMBERS")
 
+        return series_and_reg_num, region
+
     def process_region(self, region: Image) -> list:
+        # crop rus on region image
+        for i in range(int(region.height/2), region.height):
+            if np.mean(region.image[i]) == 255.:
+                region = region.crop(0, 0, region.width, i)
+                break
 
         region_characters, _ = self.splitting_binarized_image_into_numbers(region)
         for i, char in enumerate(region_characters):
@@ -335,30 +342,35 @@ class RecognitionCarPlate:
 
     @staticmethod
     def crop_binarized_char_by_edges(image: Image):
-        result = image
+        up, down, left, right = 0, image.height, 0, image.width
         # up
-        for i in range(int(result.height / 2) - 1, -1, -1):
-            if np.mean(result.image[i]) == 255.:
-                result = result.crop(0, i, result.width, result.height)
+        for i in range(int(image.height / 2) - 1, -1, -1):
+            if np.mean(image.image[i]) == 255.:
+                up = i
+                # image = image.crop(0, i, image.width, image.height)
                 break
         # down
-        for i in range(int(result.height / 2), result.height):
-            if np.mean(result.image[i]) == 255.:
-                result = result.crop(0, 0, result.width, i)
+        for i in range(int(image.height / 2), image.height):
+            if np.mean(image.image[i]) == 255.:
+                down = i
+                # image = image.crop(0, 0, image.width, i)
                 break
 
         # left
-        for i in range(int(result.width / 2) - 1, -1, -1):
-            if np.mean(result.image[:, i]) == 255.:
-                result = result.crop(i, 0, result.width, result.height)
+        for i in range(int(image.width / 2) - 1, -1, -1):
+            if np.mean(image.image[:, i]) == 255.:
+                left = i
+                # image = image.crop(i, 0, image.width, image.height)
                 break
 
         # right
-        for i in range(int(result.width / 2), result.width):
-            if np.mean(result.image[:, i]) == 255.:
-                result = result.crop(0, 0, i, result.height)
+        for i in range(int(image.width / 2), image.width):
+            if np.mean(image.image[:, i]) == 255.:
+                right = i
+                # image = image.crop(0, 0, i, image.height)
                 break
-        return result
+
+        return image.crop(left, up, right, down)
 
     def prepare_symbols_for_recognition(self, car_number: CarNumber):
         car_number.region = self.process_region(car_number.region_image)
