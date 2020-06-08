@@ -7,7 +7,6 @@ import numpy as np
 class Image:
 
     def __init__(self, image):
-        self.bounds = None
         self.brightness = None
         self.__image = None
 
