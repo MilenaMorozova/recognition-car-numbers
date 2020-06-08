@@ -4,8 +4,7 @@ import copy
 import cv2
 
 from Image import Image
-
-# TODO увеличить объём выборки(переворот 0, 6, 9), попробовать повернуть на немного картинки
+from recognition import RecognitionCarPlate
 
 
 class TestDataCreator:
@@ -49,4 +48,3 @@ class TestDataCreator:
         else:
             self.multiply_image(image, answer)
             # self.create_image(answer, image.image)
-

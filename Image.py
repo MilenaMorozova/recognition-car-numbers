@@ -2,6 +2,7 @@ import copy
 
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 class Image:
@@ -116,3 +117,6 @@ class Image:
     def flip_horizontal(self):
         return Image(cv2.flip(self.image, 0))
 
+    def hist(self):
+        plt.plot(self.brightness)
+        plt.show()

@@ -3,7 +3,6 @@ import math
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 from CarNumber import CarNumber
 from Image import Image
@@ -19,7 +18,7 @@ class RecognitionCarPlate:
         image = cv2.imread(file_image_name)
         self.origin = Image(image)
 
-    def find_number_plates_on_origin_image(self):
+    def __find_number_plates_on_origin_image(self):
         russian_number_cascade = cv2.CascadeClassifier('xml-car-numbers\\haarcascade_russian_plate_number.xml')
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
@@ -34,8 +33,7 @@ class RecognitionCarPlate:
                 cv2.rectangle(copy_origin.image, (x, y), (x + w, y + h), (0, 255, 0), 10)
             # copy_origin.show("Number Plates")
 
-    @staticmethod
-    def normalizing_image_of_number_plate_contours(image: Image):
+    def __normalizing_image_of_number_plate_contours(self, image: Image):
         edges = image.canny(30, 150)
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -53,8 +51,7 @@ class RecognitionCarPlate:
 
         # image_copy.show("Contours")
 
-    @staticmethod
-    def normalizing_image_of_number_plate_hough_lines(image: Image):
+    def __normalizing_image_of_number_plate_hough_lines(self, image: Image):
         image_copy = copy.deepcopy(image)
 
         edges = image.canny(50, 150)
@@ -75,7 +72,7 @@ class RecognitionCarPlate:
 
         # image_copy.show("Hough lines")
 
-    def find_lines_with_hough_lines_p(self, image: Image) -> list:
+    def __find_lines_with_hough_lines_p(self, image: Image) -> list:
         edges = image.canny(50, 150)
 
         min_line_length = 150
@@ -110,9 +107,9 @@ class RecognitionCarPlate:
 
         return bounds
 
-    def normalize_image(self, image: Image) -> Image:
+    def __normalize_image(self, image: Image) -> Image:
         # ---------- rotate image -----------------
-        bounds = self.find_lines_with_hough_lines_p(image)
+        bounds = self.__find_lines_with_hough_lines_p(image)
         if not bounds:
             return image
 
@@ -121,14 +118,13 @@ class RecognitionCarPlate:
         image.rotate(angle)
         # image.show("ROTATED")
         # --------- crop rotated images ------------
-        bounds = self.find_lines_with_hough_lines_p(image)
+        bounds = self.__find_lines_with_hough_lines_p(image)
         if not bounds:
             return image
 
-        return self.crop_image_by_bounds(image, bounds)
+        return self.__crop_image_by_bounds(image, bounds)
 
-    @staticmethod
-    def crop_image_by_bounds(image: Image, bounds: list) -> Image:
+    def __crop_image_by_bounds(self, image: Image, bounds: list) -> Image:
         center_height_of_image = int(image.height / 2)
 
         if len(bounds) == 2:
@@ -142,8 +138,7 @@ class RecognitionCarPlate:
             else:
                 return image.crop(0, 0, image.width, int(bounds[0][0] * image.width + bounds[0][1]))
 
-    @staticmethod
-    def increase_image_contrast(image: Image):
+    def __increase_image_contrast(self, image: Image):
         # Converting image to LAB Color model
         lab = cv2.cvtColor(image.image, cv2.COLOR_BGR2LAB)
 
@@ -159,13 +154,7 @@ class RecognitionCarPlate:
         final = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
         image.image = final
 
-    @staticmethod
-    def hist(brightness: list):
-        plt.plot(brightness)
-        plt.show()
-
-    @staticmethod
-    def crop_side_edges_of_the_image(image: Image) -> Image:
+    def __crop_side_edges_of_the_image(self, image: Image) -> Image:
         minimum = min(image.brightness)
         maximum = max(image.brightness)
         point = minimum + (maximum - minimum)*0.6
@@ -213,8 +202,7 @@ class RecognitionCarPlate:
             return image.crop(borders[1], 0, borders[0], image.height)
         return image.crop(borders[0], 0, borders[1], image.height)
 
-    @staticmethod
-    def crop_side_edges_of_the_image_2(image: Image):
+    def __crop_side_edges_of_the_image_2(self, image: Image):
         # minimum_left = np.argmin(image.brightness[:int(len(image.brightness)*0.25)])
         # minimum_right = np.argmin(list(reversed(image.brightness))[:int(len(image.brightness)*0.25)])
         # img = image.crop(minimum_left, 0, len(image.brightness) - minimum_right-1, image.height)
@@ -244,7 +232,7 @@ class RecognitionCarPlate:
         else:
             return image
 
-    def split_number_plate_into_characters_by_certain_dist(self, image: Image):
+    def __split_number_plate_into_characters_by_certain_dist(self, image: Image):
         wdth = image.width / 520  # width of the russian number plate is 520mm
         hght = image.height / 112  # height of the russian number plate is 112mm
         image.characters_on_image = []
@@ -264,8 +252,7 @@ class RecognitionCarPlate:
         # region.show('REGION')
         self.hist(region.brightness)
 
-    @staticmethod
-    def splitting_binarized_image_into_numbers(image: Image) -> tuple:
+    def __splitting_binarized_image_into_numbers(self, image: Image) -> tuple:
         start = 0
         for i in range(int(image.height/2), -1, -1):
             if np.sum(image.image[i] == 0) > 0.8*image.width:
@@ -321,14 +308,14 @@ class RecognitionCarPlate:
 
         return series_and_reg_num, region
 
-    def process_region(self, region: Image) -> list:
+    def __process_region(self, region: Image) -> list:
         # crop rus on region image
         for i in range(int(region.height/2), region.height):
             if np.mean(region.image[i]) == 255.:
                 region = region.crop(0, 0, region.width, i)
                 break
 
-        region_characters, _ = self.splitting_binarized_image_into_numbers(region)
+        region_characters, _ = self.__splitting_binarized_image_into_numbers(region)
         for i, char in enumerate(region_characters):
             if not char.is_empty():
                 region_characters[i] = char.crop_binarized_char_by_edges()  # self.crop_binarized_char_by_edges(char)
@@ -346,33 +333,29 @@ class RecognitionCarPlate:
     #     for i in range(int(image.height / 2) - 1, -1, -1):
     #         if np.mean(image.image[i]) == 255.:
     #             up = i
-    #             # image = image.crop(0, i, image.width, image.height)
     #             break
     #     # down
     #     for i in range(int(image.height / 2), image.height):
     #         if np.mean(image.image[i]) == 255.:
     #             down = i
-    #             # image = image.crop(0, 0, image.width, i)
     #             break
     #
     #     # left
     #     for i in range(int(image.width / 2) - 1, -1, -1):
     #         if np.mean(image.image[:, i]) == 255.:
     #             left = i
-    #             # image = image.crop(i, 0, image.width, image.height)
     #             break
     #
     #     # right
     #     for i in range(int(image.width / 2), image.width):
     #         if np.mean(image.image[:, i]) == 255.:
     #             right = i
-    #             # image = image.crop(0, 0, i, image.height)
     #             break
     #
     #     return image.crop(left, up, right, down)
 
-    def prepare_symbols_for_recognition(self, car_number: CarNumber):
-        car_number.region = self.process_region(car_number.region_image)
+    def __prepare_symbols_for_recognition(self, car_number: CarNumber):
+        car_number.region = self.__process_region(car_number.region_image)
         test_data_creator = TestDataCreator()
 
         for i in range(len(car_number.series_and_registration_num)-1, -1, -1):
@@ -393,26 +376,26 @@ class RecognitionCarPlate:
 
     def run(self):
         # self.origin.show("Origin")
-        self.find_number_plates_on_origin_image()
+        self.__find_number_plates_on_origin_image()
         for i in range(len(self.car_numbers)-1, -1, -1):
             car_number = self.car_numbers[i]
             print(i)
 
-            car_number.image = self.normalize_image(car_number.image)
+            car_number.image = self.__normalize_image(car_number.image)
 
-            self.increase_image_contrast(car_number.image)
+            self.__increase_image_contrast(car_number.image)
 
-            car_number.image = self.crop_side_edges_of_the_image_2(car_number.image)
+            car_number.image = self.__crop_side_edges_of_the_image_2(car_number.image)
 
             car_number.image.binarize()
             car_number.image.show("BINARIZED NUMBER")
 
             car_number.series_and_registration_num, car_number.region_image \
-                = self.splitting_binarized_image_into_numbers(car_number.image)
+                = self.__splitting_binarized_image_into_numbers(car_number.image)
             car_number.remove_all_empty_images()
 
             if not car_number.is_valid():
                 del self.car_numbers[i]
                 continue
 
-            self.prepare_symbols_for_recognition(car_number)
+            self.__prepare_symbols_for_recognition(car_number)
