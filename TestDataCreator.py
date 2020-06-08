@@ -1,10 +1,10 @@
-import os
 import copy
+import os
 
 import cv2
 
+import recognition
 from Image import Image
-from recognition import RecognitionCarPlate
 
 
 class TestDataCreator:
@@ -21,23 +21,19 @@ class TestDataCreator:
 
     def multiply_image(self, image: Image, answer):
         self.create_image(answer, image.image)
-        image_copy = copy.deepcopy(image)
-        image_copy.rotate(5)
-        self.create_image(answer, image_copy.crop_binarized_char_by_edges())
+        self.create_image(answer, recognition.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(5)).image)
 
-        image_copy = copy.deepcopy(image)
-        image_copy.rotate(-5)
-        self.create_image(answer, image_copy.crop_binarized_char_by_edges())
+        self.create_image(answer, recognition.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(-5)).image)
 
         if answer in ['B', 'C', 'D', 'E', 'H', 'K', 'O', 'X', '0']:
-            self.create_image(answer, image.flip_horizontal())
+            self.create_image(answer, image.flip_horizontal().image)
         elif answer == '6':
-            self.create_image('9', image.flip_horizontal())
+            self.create_image('9', image.rotate(180).image)
         elif answer == '9':
-            self.create_image('6', image.flip_horizontal())
+            self.create_image('6', image.rotate(180).image)
 
         if answer in ['H', 'M', 'O', 'X', '8', '0']:
-            self.create_image(answer, image.flip_vertical())
+            self.create_image(answer, image.flip_vertical().image)
 
     def run(self, image: Image):
         print('What is it?(image_name/-)   ')
