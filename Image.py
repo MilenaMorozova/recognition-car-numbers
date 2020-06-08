@@ -51,7 +51,9 @@ class Image:
     def rotate(self, angle):
         image_center = (self.width/2, self.height/2)
         rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
-        self.image = cv2.warpAffine(self.image, rot_mat, (self.width, self.height), flags=cv2.INTER_LINEAR)
+        self.image = cv2.warpAffine(self.image, rot_mat, (self.width, self.height), flags=cv2.INTER_LINEAR,
+                                    borderMode=cv2.BORDER_CONSTANT,
+                                    borderValue=(255, 255, 255))
 
     def binarize(self):
         gray_image = self.grayscale()
@@ -61,7 +63,7 @@ class Image:
 
         threshold = (dark_pix + bright_pix) / 2
         _, binarized_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
-        self.__image = binarized_image
+        self.__image = binarized_image  #
 
     def calc_brightness(self):
         if len(self.__image.shape) == 3:
@@ -81,3 +83,37 @@ class Image:
 
     def is_empty(self):
         return self.width == 0 or self.height == 0
+
+    def crop_binarized_char_by_edges(self):
+        up, down, left, right = 0, self.height, 0, self.width
+        # up
+        for i in range(int(self.height / 2) - 1, -1, -1):
+            if np.mean(self.image[i]) == 255.:
+                up = i
+                break
+        # down
+        for i in range(int(self.height / 2), self.height):
+            if np.mean(self.image[i]) == 255.:
+                down = i
+                break
+
+        # left
+        for i in range(int(self.width / 2) - 1, -1, -1):
+            if np.mean(self.image[:, i]) == 255.:
+                left = i
+                break
+
+        # right
+        for i in range(int(self.width / 2), self.width):
+            if np.mean(self.image[:, i]) == 255.:
+                right = i
+                break
+
+        return self.crop(left, up, right, down)
+
+    def flip_vertical(self):
+        return Image(cv2.flip(self.image, 1))
+
+    def flip_horizontal(self):
+        return Image(cv2.flip(self.image, 0))
+

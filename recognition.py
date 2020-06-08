@@ -20,16 +20,19 @@ class RecognitionCarPlate:
         self.origin = Image(image)
 
     def find_number_plates_on_origin_image(self):
-        # TODO показать нарисованный прямоугольнк
         russian_number_cascade = cv2.CascadeClassifier('xml-car-numbers\\haarcascade_russian_plate_number.xml')
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
         if len(russian_number_plate_rect):
+            self.origin: Image
+            copy_origin = copy.deepcopy(self.origin)
+
             for (x, y, w, h) in russian_number_plate_rect:
                 cropped_image = self.origin.crop(x, y, x + w, y + h)
                 self.car_numbers.append(CarNumber(cropped_image))
-                cv2.rectangle(self.origin.image, (x, y), (x + w, y + h), (0, 255, 0), 10)
+                cv2.rectangle(copy_origin.image, (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # copy_origin.show("Number Plates")
 
     @staticmethod
     def normalizing_image_of_number_plate_contours(image: Image):
@@ -72,76 +75,72 @@ class RecognitionCarPlate:
 
         # image_copy.show("Hough lines")
 
-    def normalizing_image_of_number_plate_hough_lines_p(self, image: Image):
+    def find_lines_with_hough_lines_p(self, image: Image) -> list:
         edges = image.canny(50, 150)
 
         min_line_length = 150
         max_line_gap = 30
 
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, min_line_length, max_line_gap)
+        bounds = []
 
         if lines is not None:
-            self.find_two_main_lines(lines, image)
-            return True
-        else:
-            print('Увы, линии не найдены')
-            return False
+            center_of_image_height = int(image.height / 2)
 
-    @staticmethod
-    def find_two_main_lines(lines: list, image: Image):
-        center_of_image_height = int(image.height / 2)
+            lines_above = [line for line in lines for _, y1, _, y2 in line
+                           if y1 < center_of_image_height and y2 < center_of_image_height]
+            lines_below = [line for line in lines for _, y1, _, y2 in line
+                           if y1 > center_of_image_height and y2 > center_of_image_height]
 
-        lines_above = [line for line in lines for _, y1, _, y2 in line
-                       if y1 < center_of_image_height and y2 < center_of_image_height]
-        lines_below = [line for line in lines for _, y1, _, y2 in line
-                       if y1 > center_of_image_height and y2 > center_of_image_height]
+            image_copy = copy.deepcopy(image)
 
-        bounds = []
-        image_copy = copy.deepcopy(image)
+            for part_of_lines in [lines_above, lines_below]:
+                if part_of_lines:
+                    tangent_of_lines = [(y2 - y1) / (x2 - x1) for line in part_of_lines for x1, y1, x2, y2 in line]
 
-        for part_of_lines in [lines_above, lines_below]:
-            if part_of_lines:
-                tangent_of_lines = [(y2 - y1) / (x2 - x1) for line in part_of_lines for x1, y1, x2, y2 in line]
+                    free_members_of_lines = [y1 - tangent_of_lines[i] * x1
+                                             for i, line in enumerate(part_of_lines) for x1, y1, _, _ in line]
 
-                free_members_of_lines = [y1 - tangent_of_lines[i] * x1
-                                         for i, line in enumerate(part_of_lines) for x1, y1, _, _ in line]
+                    average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
+                    bounds.append(average_line)
 
-                average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
-                bounds.append(average_line)
+                    cv2.line(image_copy.image, (0, int(average_line[1])),
+                             (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
+            # image_copy.show("TWO MAIN LINES")
 
-                cv2.line(image_copy.image, (0, int(average_line[1])),
-                         (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
+        return bounds
 
-        image.bounds = bounds
-        # image_copy.show("TWO MAIN LINES")
-
-    @staticmethod
-    def rotate_image(image: Image):
-        if image.bounds is None:
-            return
-
-        max_k = np.mean([line[0] for line in image.bounds])
-        angle = (math.atan(max_k) * 180) / np.pi
-
-        image.rotate(angle)
-
-    @staticmethod
-    def crop_image_by_bounds(image: Image) -> Image:
-        if image.bounds is None:
+    def normalize_image(self, image: Image) -> Image:
+        # ---------- rotate image -----------------
+        bounds = self.find_lines_with_hough_lines_p(image)
+        if not bounds:
             return image
 
+        max_k = np.mean([line[0] for line in bounds])
+        angle = (math.atan(max_k) * 180) / np.pi
+        image.rotate(angle)
+        # image.show("ROTATED")
+        # --------- crop rotated images ------------
+        bounds = self.find_lines_with_hough_lines_p(image)
+        if not bounds:
+            return image
+
+        return self.crop_image_by_bounds(image, bounds)
+
+    @staticmethod
+    def crop_image_by_bounds(image: Image, bounds: list) -> Image:
         center_height_of_image = int(image.height / 2)
 
-        if len(image.bounds) == 2:
-            y1 = int(image.bounds[0][1])
-            y2 = int(image.bounds[1][0] * image.width + image.bounds[1][1])
+        if len(bounds) == 2:
+            y1 = int(bounds[0][1])
+            y2 = int(bounds[1][0] * image.width + bounds[1][1])
             return image.crop(0, y1, image.width, y2)
 
-        elif len(image.bounds) == 1:
-            if int(image.bounds[0][0] * image.width / 2 + image.bounds[0][1]) < center_height_of_image:
-                return image.crop(0, int(image.bounds[0][1]), image.width, image.height)
+        elif len(bounds) == 1:
+            if int(bounds[0][0] * image.width / 2 + bounds[0][1]) < center_height_of_image:
+                return image.crop(0, int(bounds[0][1]), image.width, image.height)
             else:
-                return image.crop(0, 0, image.width, int(image.bounds[0][0] * image.width + image.bounds[0][1]))
+                return image.crop(0, 0, image.width, int(bounds[0][0] * image.width + bounds[0][1]))
 
     @staticmethod
     def increase_image_contrast(image: Image):
@@ -332,7 +331,7 @@ class RecognitionCarPlate:
         region_characters, _ = self.splitting_binarized_image_into_numbers(region)
         for i, char in enumerate(region_characters):
             if not char.is_empty():
-                region_characters[i] = self.crop_binarized_char_by_edges(char)
+                region_characters[i] = char.crop_binarized_char_by_edges()  # self.crop_binarized_char_by_edges(char)
 
         for i in range(len(region_characters)-1, -1, -1):
             if region_characters[i].is_empty():
@@ -340,37 +339,37 @@ class RecognitionCarPlate:
 
         return region_characters
 
-    @staticmethod
-    def crop_binarized_char_by_edges(image: Image):
-        up, down, left, right = 0, image.height, 0, image.width
-        # up
-        for i in range(int(image.height / 2) - 1, -1, -1):
-            if np.mean(image.image[i]) == 255.:
-                up = i
-                # image = image.crop(0, i, image.width, image.height)
-                break
-        # down
-        for i in range(int(image.height / 2), image.height):
-            if np.mean(image.image[i]) == 255.:
-                down = i
-                # image = image.crop(0, 0, image.width, i)
-                break
-
-        # left
-        for i in range(int(image.width / 2) - 1, -1, -1):
-            if np.mean(image.image[:, i]) == 255.:
-                left = i
-                # image = image.crop(i, 0, image.width, image.height)
-                break
-
-        # right
-        for i in range(int(image.width / 2), image.width):
-            if np.mean(image.image[:, i]) == 255.:
-                right = i
-                # image = image.crop(0, 0, i, image.height)
-                break
-
-        return image.crop(left, up, right, down)
+    # @staticmethod
+    # def crop_binarized_char_by_edges(image: Image):
+    #     up, down, left, right = 0, image.height, 0, image.width
+    #     # up
+    #     for i in range(int(image.height / 2) - 1, -1, -1):
+    #         if np.mean(image.image[i]) == 255.:
+    #             up = i
+    #             # image = image.crop(0, i, image.width, image.height)
+    #             break
+    #     # down
+    #     for i in range(int(image.height / 2), image.height):
+    #         if np.mean(image.image[i]) == 255.:
+    #             down = i
+    #             # image = image.crop(0, 0, image.width, i)
+    #             break
+    #
+    #     # left
+    #     for i in range(int(image.width / 2) - 1, -1, -1):
+    #         if np.mean(image.image[:, i]) == 255.:
+    #             left = i
+    #             # image = image.crop(i, 0, image.width, image.height)
+    #             break
+    #
+    #     # right
+    #     for i in range(int(image.width / 2), image.width):
+    #         if np.mean(image.image[:, i]) == 255.:
+    #             right = i
+    #             # image = image.crop(0, 0, i, image.height)
+    #             break
+    #
+    #     return image.crop(left, up, right, down)
 
     def prepare_symbols_for_recognition(self, car_number: CarNumber):
         car_number.region = self.process_region(car_number.region_image)
@@ -378,18 +377,19 @@ class RecognitionCarPlate:
 
         for i in range(len(car_number.series_and_registration_num)-1, -1, -1):
             char = car_number.series_and_registration_num[i]
-            car_number.series_and_registration_num[i] = self.crop_binarized_char_by_edges(char)
+            char: Image
+            car_number.series_and_registration_num[i] = char.crop_binarized_char_by_edges()  # self.crop_binarized_char_by_edges(char)
 
             if car_number.series_and_registration_num[i].is_empty():
                 del car_number.series_and_registration_num[i]
                 continue
-
-            car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
-            # test_data_creator.run(car_number.series_and_registration_num[i])
+            car_number.series_and_registration_num[i].rotate(5)
+            # car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
+            test_data_creator.run(car_number.series_and_registration_num[i])
 
         for char in car_number.region:
-            char.show("CROPPED SYMBOLS REGION")
-            # test_data_creator.run(car_number.region[i])
+            # char.show("CROPPED SYMBOLS REGION")
+            test_data_creator.run(car_number.region[i])
 
     def run(self):
         # self.origin.show("Origin")
@@ -397,10 +397,8 @@ class RecognitionCarPlate:
         for i in range(len(self.car_numbers)-1, -1, -1):
             car_number = self.car_numbers[i]
             print(i)
-            if self.normalizing_image_of_number_plate_hough_lines_p(car_number.image):
-                self.rotate_image(car_number.image)
-                self.normalizing_image_of_number_plate_hough_lines_p(car_number.image)
-                car_number.image = self.crop_image_by_bounds(car_number.image)
+
+            car_number.image = self.normalize_image(car_number.image)
 
             self.increase_image_contrast(car_number.image)
 
