@@ -4,6 +4,7 @@ __pycache__/
 
 # image for test
 images/
+test_data/
 
 # files for training different things 
 example.py

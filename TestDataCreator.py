@@ -9,7 +9,7 @@ from Image import Image
 
 class TestDataCreator:
 
-    def create_image(self, image_file_name, image):
+    def create_image(self, image_file_name, image, start: int = 30):
         resized = cv2.resize(image, (27, 36), interpolation=cv2.INTER_AREA)
         if image_file_name.isalpha():
             files = os.listdir(path=".\\test_data\\letters")
@@ -17,7 +17,7 @@ class TestDataCreator:
         else:
             image_file_name = ".\\test_data\\digits\\" + image_file_name
             files = os.listdir(path=".\\test_data\\digits")
-        cv2.imwrite(image_file_name + '__' + str(len(files)) + '.jpg', resized)
+        cv2.imwrite(image_file_name + '__' + str(start + len(files)) + '.jpg', resized)
 
     def multiply_image(self, image: Image, answer):
         self.create_image(answer, image.image)
