@@ -48,12 +48,11 @@ class Image:
         self.__image = value
         self.brightness = self.calc_brightness()
 
-    def rotate(self, angle):
+    def rotate(self, angle, background: tuple = (0, 0, 0)):
         image_center = (self.width/2, self.height/2)
         rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
         result = cv2.warpAffine(self.image, rot_mat, (self.width, self.height), flags=cv2.INTER_LINEAR,
-                                    borderMode=cv2.BORDER_CONSTANT,
-                                    borderValue=(255, 255, 255))
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=background)
         return Image(result)
 
     def binarize(self):

@@ -3,7 +3,7 @@ import os
 
 import cv2
 
-import recognition
+import recognition as r
 from Image import Image
 
 
@@ -21,16 +21,18 @@ class TestDataCreator:
 
     def multiply_image(self, image: Image, answer):
         self.create_image(answer, image.image)
-        self.create_image(answer, recognition.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(5)).image)
+        self.create_image(answer,
+                          r.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(5, (255, 255, 255))).image)
 
-        self.create_image(answer, recognition.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(-5)).image)
+        self.create_image(answer,
+                          r.RecognitionCarPlate.crop_binarized_char_by_edges(image.rotate(-5, (255, 255, 255))).image)
 
         if answer in ['B', 'C', 'D', 'E', 'H', 'K', 'O', 'X', '0']:
             self.create_image(answer, image.flip_horizontal().image)
         elif answer == '6':
-            self.create_image('9', image.rotate(180).image)
+            self.create_image('9', image.rotate(180, (255, 255, 255)).image)
         elif answer == '9':
-            self.create_image('6', image.rotate(180).image)
+            self.create_image('6', image.rotate(180, (255, 255, 255)).image)
 
         if answer in ['H', 'M', 'O', 'X', '8', '0']:
             self.create_image(answer, image.flip_vertical().image)

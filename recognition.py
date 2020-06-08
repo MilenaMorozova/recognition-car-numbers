@@ -104,7 +104,7 @@ class RecognitionCarPlate:
 
                     cv2.line(image_copy.image, (0, int(average_line[1])),
                              (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
-            image_copy.show("TWO MAIN LINES")
+            # image_copy.show("TWO MAIN LINES")
 
         return bounds
 
@@ -116,9 +116,8 @@ class RecognitionCarPlate:
 
         max_k = np.mean([line[0] for line in bounds])
         angle = (math.atan(max_k) * 180) / np.pi
-        print(angle)
         rotated_image = image.rotate(angle)
-        rotated_image.show("ROTATED")
+        # rotated_image.show("ROTATED")
         # --------- crop rotated images ------------
         bounds = self.__find_lines_with_hough_lines_p(rotated_image)
         if not bounds:
