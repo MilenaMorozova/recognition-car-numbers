@@ -2,8 +2,8 @@ import os
 
 import cv2
 
-import recognition as r
-from Image import Image
+from src import recognition as r
+from src.Image import Image
 
 
 class TestDataCreator:

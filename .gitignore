@@ -7,5 +7,5 @@ images/
 test_data/
 
 # files for training different things 
-example.py
-test_train.py
+src/example.py
+src/test_train.py

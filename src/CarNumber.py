@@ -1,4 +1,4 @@
-from Image import Image
+from src.Image import Image
 
 
 class CarNumber:

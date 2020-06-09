@@ -4,9 +4,8 @@ import math
 import cv2
 import numpy as np
 
-from Image import Image
-from CarNumber import CarNumber
-from TestDataCreator import TestDataCreator
+from src.Image import Image
+from src.CarNumber import CarNumber
 
 
 class RecognitionCarPlate:
@@ -109,7 +108,7 @@ class RecognitionCarPlate:
 
                     cv2.line(image_copy.image, (0, int(average_line[1])),
                              (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
-            image_copy.show("TWO MAIN LINES")
+            # image_copy.show("TWO MAIN LINES")
 
         return bounds
 
@@ -253,7 +252,7 @@ class RecognitionCarPlate:
 
         for symbol in [first_symbol, second_symbol, third_symbol, fourth_symbol, fifth_symbol, sixth_symbol]:
             image.characters_on_image.append(symbol.brightness)
-            symbol.show(str(len(image.characters_on_image)) + 'SYMBOL')
+            # symbol.show(str(len(image.characters_on_image)) + 'SYMBOL')
 
         # region.show('REGION')
         # region.hist()
@@ -379,12 +378,13 @@ class RecognitionCarPlate:
             # char.show("CROPPED SYMBOLS REGION")
             # test_data_creator.run(char)
 
-    def run(self):
+    def run(self, file_image_name):
+        self.load_image(file_image_name)
         # self.origin.show("Origin")
         self.__find_number_plates_on_origin_image()
         for i in range(len(self.car_numbers)-1, -1, -1):
             car_number = self.car_numbers[i]
-            print(i)
+            # print(i)
 
             car_number.image = self.__normalize_image(car_number.image)
 
