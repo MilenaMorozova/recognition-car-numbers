@@ -4,7 +4,11 @@ __pycache__/
 
 # image for test
 images/
+training_data/
 test_data/
+
+# networks weights, biases and evaluation
+src/network_parameters.json
 
 # script for calc character frequency
 src/frequency_symbols.py

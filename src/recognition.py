@@ -19,7 +19,7 @@ class RecognitionCarPlate:
         self.origin = Image(image)
 
     def __find_number_plates_on_origin_image(self):
-        russian_number_cascade = cv2.CascadeClassifier('xml-car-numbers\\haarcascade_russian_plate_number.xml')
+        russian_number_cascade = cv2.CascadeClassifier('..\\xml-car-numbers\\haarcascade_russian_plate_number.xml')
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
@@ -396,7 +396,7 @@ class RecognitionCarPlate:
             car_number.image = self.crop_side_edges_of_the_image_2(car_number.image)
 
             car_number.image.binarize()
-            # car_number.image.show("BINARIZED NUMBER")
+            car_number.image.show("BINARIZED NUMBER")
 
             car_number.series_and_registration_num, car_number.region_image \
                 = self.splitting_binarized_image_into_numbers(car_number.image)
