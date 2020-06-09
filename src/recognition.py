@@ -371,17 +371,17 @@ class RecognitionCarPlate:
             char = car_number.series_and_registration_num[i]
             car_number.series_and_registration_num[i] = self.crop_binarized_char_by_edges(char)
 
-            # if car_number.series_and_registration_num[i].is_empty():
-            #     del car_number.series_and_registration_num[i]
-            #     continue
-            # test_data_creator.run(car_number.series_and_registration_num[i])
-        car_number.clear_series_and_reg_num()
-        car_number.show_series_and_registration_num()
+            if car_number.series_and_registration_num[i].is_empty():
+                del car_number.series_and_registration_num[i]
+                continue
+            test_data_creator.run(car_number.series_and_registration_num[i])
+        # car_number.clear_series_and_reg_num()
+        # car_number.show_series_and_registration_num()
 
         for char in car_number.region:
-            pass
-            char.show("CROPPED SYMBOLS REGION")
-            # test_data_creator.run(char)
+            # pass
+            # char.show("CROPPED SYMBOLS REGION")
+            test_data_creator.run(char)
 
     def run(self, file_image_name):
         self.load_image(file_image_name)
@@ -397,7 +397,7 @@ class RecognitionCarPlate:
             car_number.image = self.crop_side_edges_of_the_image_2(car_number.image)
 
             car_number.image.binarize()
-            car_number.image.show("BINARIZED NUMBER")
+            # car_number.image.show("BINARIZED NUMBER")
 
             car_number.series_and_registration_num, car_number.region_image \
                 = self.splitting_binarized_image_into_numbers(car_number.image)

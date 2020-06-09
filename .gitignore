@@ -6,6 +6,9 @@ __pycache__/
 images/
 test_data/
 
+# script for calc character frequency
+frequency_symbols.py
+
 # files for training different things 
 src/example.py
 src/test_train.py
