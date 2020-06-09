@@ -94,17 +94,22 @@ class RecognitionCarPlate:
 
             for part_of_lines in [lines_above, lines_below]:
                 if part_of_lines:
-                    tangent_of_lines = [(y2 - y1) / (x2 - x1) for line in part_of_lines for x1, y1, x2, y2 in line]
+                    tangent_of_lines = []
+                    free_members_of_lines = []
 
-                    free_members_of_lines = [y1 - tangent_of_lines[i] * x1
-                                             for i, line in enumerate(part_of_lines) for x1, y1, _, _ in line]
+                    for line in part_of_lines:  # find non-vertical lines
+                        for x1, y1, x2, y2 in line:
+                            if x2 == x1:
+                                continue
+                            tangent_of_lines.append((y2 - y1) / (x2 - x1))
+                            free_members_of_lines.append(y1 - tangent_of_lines[-1] * x1)
 
                     average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
                     bounds.append(average_line)
 
                     cv2.line(image_copy.image, (0, int(average_line[1])),
                              (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0))
-            # image_copy.show("TWO MAIN LINES")
+            image_copy.show("TWO MAIN LINES")
 
         return bounds
 
@@ -357,7 +362,7 @@ class RecognitionCarPlate:
 
     def __prepare_symbols_for_recognition(self, car_number: CarNumber):
         car_number.region = self.process_region(car_number.region_image)
-        test_data_creator = TestDataCreator()
+        # test_data_creator = TestDataCreator()
 
         for i in range(len(car_number.series_and_registration_num)-1, -1, -1):
             char = car_number.series_and_registration_num[i]
@@ -367,11 +372,12 @@ class RecognitionCarPlate:
                 del car_number.series_and_registration_num[i]
                 continue
             # car_number.series_and_registration_num[i].show("CROPPED SYMBOLS SERIES AND REGISTRATION NUMBER")
-            test_data_creator.run(car_number.series_and_registration_num[i])
+            # test_data_creator.run(car_number.series_and_registration_num[i])
 
         for char in car_number.region:
+            pass
             # char.show("CROPPED SYMBOLS REGION")
-            test_data_creator.run(char)
+            # test_data_creator.run(char)
 
     def run(self):
         # self.origin.show("Origin")
