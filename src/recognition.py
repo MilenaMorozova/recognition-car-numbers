@@ -72,7 +72,6 @@ class RecognitionCarPlate:
 
         # image_copy.show("Hough lines")
 
-
     def __find_lines_with_hough_lines_p(self, image: Image) -> list:
         edges = image.canny(50, 150)
 

@@ -7,7 +7,7 @@ images/
 test_data/
 
 # script for calc character frequency
-frequency_symbols.py
+src/frequency_symbols.py
 
 # files for training different things 
 src/example.py
