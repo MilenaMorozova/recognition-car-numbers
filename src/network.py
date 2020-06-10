@@ -165,23 +165,23 @@ def create_training_data(directory_name: list) -> list:
     return training_data
 
 
-if __name__ == '__main__':
-    training_data = create_training_data(['..\\training_data\\letters', '..\\training_data\\digits'])
-    test_data = create_training_data(['..\\test_data\\letters', '..\\test_data\\digits'])
-
-    net = Network([972, 150, 60, 22], 'network_parameters.json')
-    net.SGD(training_data, 10, 220, 1.3, test_data)
-    test_data = training_data
-
-    # net.load_weights('network_parameters.json')
-    print('Correct - Incorrect')
-    numbers = 0
-    for test in test_data:
-        answer = np.argmax(test[1])
-        result = np.argmax(net.feedforward(test[0]))
-        # print(possible_values[answer], '-', possible_values[result])
-        if answer == result:
-            numbers += 1
-        else:
-            print(possible_values[answer], '-', possible_values[result])
-    print('TOTAL:', numbers, '/', len(test_data))
+# if __name__ == '__main__':
+#     training_data = create_training_data(['..\\training_data\\letters', '..\\training_data\\digits'])
+#     test_data = create_training_data(['..\\test_data\\letters', '..\\test_data\\digits'])
+#
+#     net = Network([972, 250, 100, 22], 'network_parameters.json')
+#     net.SGD(training_data, 10, 220, 1.4, test_data)
+#     # test_data = training_data
+#
+#     # net.load_weights('network_parameters.json')
+#     print('Correct - Incorrect')
+#     numbers = 0
+#     for test in test_data:
+#         answer = np.argmax(test[1])
+#         result = np.argmax(net.feedforward(test[0]))
+#         # print(possible_values[answer], '-', possible_values[result])
+#         if answer == result:
+#             numbers += 1
+#         else:
+#             print(possible_values[answer], '-', possible_values[result])
+#     print('TOTAL:', numbers, '/', len(test_data))

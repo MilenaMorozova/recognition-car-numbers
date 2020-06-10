@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-class Image:
+class MyImage:
 
     def __init__(self, image):
         self.brightness = None
@@ -29,12 +29,12 @@ class Image:
         return cv2.cvtColor(self.__image, cv2.COLOR_BGR2GRAY)
 
     def __deepcopy__(self, memodict={}):
-        return Image(copy.deepcopy(self.__image))
+        return MyImage(copy.deepcopy(self.__image))
 
     def crop(self, x1, y1, x2, y2):
         cropped_image = copy.deepcopy(self)
         cropped_image = cropped_image.__image[y1: y2, x1: x2]
-        return Image(cropped_image)
+        return MyImage(cropped_image)
 
     def canny(self, threshold1: float, threshold2: float, aperture_size: int = 3):
         return cv2.Canny(self.grayscale(), threshold1, threshold2, apertureSize=aperture_size)
@@ -53,7 +53,7 @@ class Image:
         rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
         result = cv2.warpAffine(self.image, rot_mat, (self.width, self.height), flags=cv2.INTER_LINEAR,
                                 borderMode=cv2.BORDER_CONSTANT, borderValue=background)
-        return Image(result)
+        return MyImage(result)
 
     def binarize(self):
         gray_image = self.grayscale()
@@ -85,10 +85,10 @@ class Image:
         return self.width == 0 or self.height == 0
 
     def flip_vertical(self):
-        return Image(cv2.flip(self.image, 1))
+        return MyImage(cv2.flip(self.image, 1))
 
     def flip_horizontal(self):
-        return Image(cv2.flip(self.image, 0))
+        return MyImage(cv2.flip(self.image, 0))
 
     def hist(self):
         plt.plot(self.brightness)

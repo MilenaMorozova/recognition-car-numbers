@@ -1,8 +1,8 @@
-from src.Image import Image
+from src.MyImage import MyImage
 
 
 class CarNumber:
-    def __init__(self, image: Image):
+    def __init__(self, image: MyImage):
         self.image = image
         self.region_image = None
 
