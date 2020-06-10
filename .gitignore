@@ -8,6 +8,7 @@ test_data_creator/__pycache__/
 images/
 training_data/
 test_data/
+recognition-car-numbers.zip
 
 # networks weights, biases and evaluation
 src/network_parameters.json

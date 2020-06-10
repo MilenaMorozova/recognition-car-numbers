@@ -1,5 +1,6 @@
 import copy
 import math
+import os
 
 import cv2
 import numpy as np
@@ -19,7 +20,9 @@ class RecognitionCarPlate:
 
     def __find_number_plates_on_origin_image(self):
         self.car_numbers = []
-        russian_number_cascade = cv2.CascadeClassifier('..\\xml-car-numbers\\haarcascade_russian_plate_number.xml')
+        print(os.getcwd())
+        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.getcwd(),
+                                                            'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 

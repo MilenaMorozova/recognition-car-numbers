@@ -5,7 +5,6 @@ from tkinter import messagebox as mb
 
 from PIL import ImageTk, Image
 from src.TestDataCreator import TestDataCreator
-# import test_data_creatorr.TestDataCreator as t
 
 
 class GUI:
@@ -105,6 +104,7 @@ class GUI:
                                                     ('Image file', '*.jpeg')])
         self.files.extend(file_names)
         for file in file_names:
+            print(file)
             self.car_images.append(ImageTk.PhotoImage(Image.open(file).resize((60, 40))))
         self.create_tree()
 
