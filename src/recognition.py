@@ -20,9 +20,9 @@ class RecognitionCarPlate:
 
     def __find_number_plates_on_origin_image(self):
         self.car_numbers = []
-        print(os.getcwd())
-        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.getcwd(),
-                                                            'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
+        print(os.path.join(os.path.abspath('xml-car-numbers'), 'haarcascade_russian_plate_number.xml'))
+        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.path.abspath('xml-car-numbers'),
+                                                                    'haarcascade_russian_plate_number.xml'))
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
@@ -353,19 +353,23 @@ class RecognitionCarPlate:
             if np.mean(car_number.region_image.image[i]) == 255.:
                 car_number.region_image = car_number.region_image.crop(0, 0, car_number.region_image.width, i)
                 break
-
+        # TODO решить проблему, которая возникла у Никиты и проблему с путями
         car_number.region, _ = self.splitting_binarized_image_into_numbers(car_number.region_image)
         car_number.clear_region()
 
+
         for i, char in enumerate(car_number.region):
-            if not char.is_empty():
-                car_number.region[i] = self.crop_binarized_char_by_edges(char)
+            # if not char.is_empty():
+            car_number.region[i] = self.crop_binarized_char_by_edges(char)
 
         car_number.remove_empty_images_from_region()
 
     def __prepare_symbols_for_recognition(self, car_number: CarNumber):
-        self.process_region(car_number)
-        # test_data_creator = TestDataCreator()
+        try:
+            self.process_region(car_number)
+        except ValueError:
+            self.car_numbers.remove(car_number)
+            return
 
         car_number.clear_series_and_reg_num()
         for i in range(len(car_number.series_and_registration_num)-1, -1, -1):
@@ -375,7 +379,7 @@ class RecognitionCarPlate:
             if car_number.series_and_registration_num[i].is_empty():
                 del car_number.series_and_registration_num[i]
                 continue
-        # car_number.clear_series_and_reg_num()
+        car_number.clear_series_and_reg_num()
         # car_number.show_series_and_registration_num()
 
         for char in car_number.region:
