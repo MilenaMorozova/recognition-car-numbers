@@ -170,7 +170,7 @@ def create_training_data(directory_name: list) -> list:
 #     test_data = create_training_data(['..\\test_data\\letters', '..\\test_data\\digits'])
 #
 #     net = Network([972, 250, 100, 22], 'network_parameters.json')
-#     net.SGD(training_data, 10, 220, 1.4, test_data)
+#     net.SGD(training_data, 10, 220, 1.3, test_data)
 #     # test_data = training_data
 #
 #     # net.load_weights('network_parameters.json')

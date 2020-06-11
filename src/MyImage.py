@@ -93,3 +93,11 @@ class MyImage:
     def hist(self):
         plt.plot(self.brightness)
         plt.show()
+
+    def resize(self, sizes: tuple):
+        self.image = cv2.resize(self.image, sizes, interpolation=cv2.INTER_AREA)
+
+    def to_array(self):
+        image_array = np.array([np.mean(pix) / 255. for row in self.image for pix in row])
+        return np.reshape(image_array, (972, 1))
+

@@ -5,7 +5,7 @@ from tkinter import filedialog as fd
 from tkinter.ttk import Frame, Treeview, Style
 from tkinter import messagebox as mb
 
-from src.TestDataCreator import TestDataCreator
+from src.recognition import RecognitionCarPlate
 
 
 class GUI:
@@ -13,7 +13,6 @@ class GUI:
         self.root = Tk()
         self.right_frame = Frame(self.root)
         self.left_frame = Frame(self.root)
-        self.image = None
         self.scrollbarx = Scrollbar(self.left_frame, orient=HORIZONTAL)
         self.scrollbary = Scrollbar(self.left_frame, orient=VERTICAL)
         self.tree = None
@@ -21,10 +20,10 @@ class GUI:
         self.tree_index = None
         self.selected_item = None
 
-        self.test_data_creator = TestDataCreator()
-        self.char_images = []
-        self.index = 0
+        self.recogniser = RecognitionCarPlate()
+        self.label = None
         self.panel = None
+        self.image = None
 
         self.buttons = {}
 
@@ -39,32 +38,17 @@ class GUI:
         self.root.geometry('%dx%d+%d+%d' % (w, h, x, y))
         self.root.resizable(False, False)
         self.add_left_frame()
-        self.add_buttons()
+        self.add_right_frame()
 
         self.left_frame.pack(side=LEFT)
         self.right_frame.pack(side=RIGHT)
 
-    def add_buttons(self):
+    def add_right_frame(self):
         self.panel = Label(self.right_frame, image=self.image)
-        self.panel.pack(side=TOP)
+        self.panel.pack(side=LEFT, anchor=CENTER)
 
-        digit_frame = Frame(self.right_frame)
-        for i in [str(i) for i in range(10)]:
-            button_digit = Button(digit_frame, text=i, width=3)
-            button_digit.bind('<Button-1>', self.button_click)
-            button_digit.pack(side=LEFT, padx=2.)
-        digit_frame.pack(pady=5)
-
-        alpha_frame = Frame(self.right_frame)
-        for i in ['A', 'B', 'E', 'K', 'M', 'H', 'O', 'P', 'C', 'T', 'Y', 'X']:
-            button_alpha = Button(alpha_frame, text=i, width=3)
-            button_alpha.bind('<Button-1>', self.button_click)
-            button_alpha.pack(side=LEFT, padx=2.)
-        alpha_frame.pack(pady=5)
-
-        button_nothing = Button(self.right_frame, text='-', width=10)
-        button_nothing.bind('<Button-1>', self.button_click)
-        button_nothing.pack()
+        self.label = Label(self.right_frame, text='RESULT')
+        self.label.pack()
 
     def create_tree(self):
         if self.tree:
@@ -106,21 +90,6 @@ class GUI:
             self.files[file] = ImageTk.PhotoImage(Image.open(file).resize((60, 40)))
         self.create_tree()
 
-    def button_click(self, event):
-        image_name = event.widget.cget('text')
-        if image_name != '-':
-            self.test_data_creator.multiply_image(self.char_images[self.index], image_name)
-
-        self.index += 1
-        if self.index >= len(self.char_images):
-            del self.files[self.selected_item]
-            mb.showinfo("Recognition", "Characters are over!")
-            self.image = None
-            self.create_tree()
-        else:
-            self.image = ImageTk.PhotoImage(Image.fromarray(self.char_images[self.index].image).resize((120, 200)))
-        self.panel.configure(image=self.image)
-
     def run(self):
         index = self.tree.selection()
 
@@ -129,16 +98,21 @@ class GUI:
             return
         index = index[0]
         self.selected_item = ' '.join(self.tree.item(index)['values'])
-        self.char_images = self.test_data_creator.start(self.selected_item)
-        self.index = 0
-        if not self.char_images:
-            mb.showerror("Recognition", "Car numbers not recognized")
-            del self.files[self.selected_item]
-            self.create_tree()
-            self.image = None
+        self.image = ImageTk.PhotoImage(Image.open(self.selected_item).resize((300, 200)))
+        self.panel.configure(image=self.image)
+
+        results = self.recogniser.run(self.selected_item)
+        print(results)
+        if not results:
+            self.label['text'] = 'RESULT:\nNo results'
+            mb.showinfo("Recognition", "Car number not recognized!")
         else:
-            self.image = ImageTk.PhotoImage(Image.fromarray(self.char_images[self.index].image).resize((120, 200)))
-            self.panel.configure(image=self.image)
+            res = 'RESULT:\n'
+            for i in results:
+                for char in i:
+                    res += char
+                res += '\n'
+            self.label['text'] = res
 
 
 if __name__ == '__main__':
