@@ -16,10 +16,9 @@ class GUI:
         self.scrollbarx = Scrollbar(self.left_frame, orient=HORIZONTAL)
         self.scrollbary = Scrollbar(self.left_frame, orient=VERTICAL)
         self.tree = None
-        self.files = []
+        self.files = {}
         self.tree_index = None
-        self.index_selected_item = None
-        self.car_images = []
+        self.selected_item = None
 
         self.test_data_creator = TestDataCreator()
         self.char_images = []
@@ -72,7 +71,7 @@ class GUI:
 
         style = Style(self.left_frame)
         style.configure('Calendar.Treeview', rowheight=50)
-        self.tree = Treeview(self.left_frame, columns=('#1'),
+        self.tree = Treeview(self.left_frame, columns='#1',
                              height=400, selectmode="extended",
                              yscrollcommand=self.scrollbary.set,
                              xscrollcommand=self.scrollbarx.set,
@@ -88,11 +87,11 @@ class GUI:
 
         self.tree.column('#0', width=80, anchor=CENTER)
         if self.files:
-            for i, j in zip(self.files, self.car_images):
-                self.tree.insert("", 'end', values=(i), image=j)
+            for key in self.files:
+                self.tree.insert("", 'end', values=key, image=self.files[key])
         self.tree.pack(side=BOTTOM)
 
-    def add_left_frame(self, paths: list = []):
+    def add_left_frame(self):
         load_button = Button(self.left_frame, text="load files", command=self.load_files)
         load_button.pack(side=TOP, anchor=NW, pady=5)
         start_button = Button(self.left_frame, text='Start recognition', command=self.run)
@@ -102,10 +101,8 @@ class GUI:
     def load_files(self):
         file_names = fd.askopenfilenames(filetypes=[('Image file', '*.png'), ('Image file', '*.jpg'),
                                                     ('Image file', '*.jpeg')])
-        self.files.extend(file_names)
         for file in file_names:
-            print(file)
-            self.car_images.append(ImageTk.PhotoImage(Image.open(file).resize((60, 40))))
+            self.files[file] = ImageTk.PhotoImage(Image.open(file).resize((60, 40)))
         self.create_tree()
 
     def button_click(self, event):
@@ -115,11 +112,7 @@ class GUI:
 
         self.index += 1
         if self.index >= len(self.char_images):
-            self.tree: Treeview
-            item = self.tree.selection()[0]
-            self.tree.delete(item)
-            del self.files[self.index_selected_item]
-            del self.car_images[self.index_selected_item]
+            del self.files[self.selected_item]
             mb.showinfo("Recognition", "Characters are over!")
             self.image = None
             self.create_tree()
@@ -128,22 +121,21 @@ class GUI:
         self.panel.configure(image=self.image)
 
     def run(self):
-        index = self.tree.selection()
+        index = self.tree.selection()[0]
 
         if not index:
             mb.showinfo("Choice image", "Not selected item")
             return
-        self.index_selected_item = int(index[0][1:]) - 1
-        self.char_images = self.test_data_creator.start(self.files[self.index_selected_item])
+        self.selected_item = ' '.join(self.tree.item(index)['values'])
+        self.char_images = self.test_data_creator.start(self.selected_item)
         self.index = 0
         if not self.char_images:
             mb.showerror("Recognition", "Car numbers not recognized")
-            del self.files[self.index_selected_item]
-            del self.car_images[self.index_selected_item]
+            del self.files[self.selected_item]
             self.create_tree()
             self.image = None
         else:
-            self.image = ImageTk.PhotoImage(Image.fromarray(self.char_images[self.index_selected_item].image).resize((120, 200)))
+            self.image = ImageTk.PhotoImage(Image.fromarray(self.char_images[self.index].image).resize((120, 200)))
             self.panel.configure(image=self.image)
 
 
