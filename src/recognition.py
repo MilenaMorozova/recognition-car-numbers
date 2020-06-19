@@ -16,8 +16,8 @@ class RecognitionCarPlate:
     def __init__(self):
         self.origin = None
         self.car_numbers = None
-        self.network = Network([972, 250, 100, 22], 'src\\network_parameters.json')
-        self.network.load_weights('src\\network_parameters.json')
+        self.network = Network([972, 250, 100, 22], 'network_parameters.json')
+        self.network.load_weights('network_parameters.json')
 
     def load_image(self, file_image_name):
         image = cv2.imread(file_image_name)
@@ -26,7 +26,7 @@ class RecognitionCarPlate:
     def __find_number_plates_on_origin_image(self):
         self.car_numbers = []
         # print(os.path.join(os.getcwd(), '..', 'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
-        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.getcwd(),  'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
+        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.getcwd(), '..', 'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
@@ -393,8 +393,9 @@ class RecognitionCarPlate:
             car_number = self.car_numbers[i]
 
             car_number.image = self.__normalize_image(car_number.image)
-
+            car_number.image.show("CROPPED")
             self.__increase_image_contrast(car_number.image)
+            car_number.image.show("CONTRAST")
             car_number.image = self.crop_side_edges_of_the_image_2(car_number.image)
             # car_number.image.show("CROPPED BY EDGES")
 
