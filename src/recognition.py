@@ -1,6 +1,5 @@
 import copy
 import math
-import os
 
 import cv2
 import numpy as np
@@ -8,6 +7,7 @@ import numpy as np
 from src.MyImage import MyImage
 from src.CarNumber import CarNumber
 from src.network import Network
+from paths_in_project import *
 
 possible_values = [str(i) for i in range(10)]+['A', 'B', 'E', 'K', 'M', 'H', 'O', 'P', 'C', 'T', 'Y', 'X']
 
@@ -16,8 +16,8 @@ class RecognitionCarPlate:
     def __init__(self):
         self.origin = None
         self.car_numbers = None
-        self.network = Network([972, 250, 100, 22], 'network_parameters.json')
-        self.network.load_weights('network_parameters.json')
+        self.network = Network([972, 250, 100, 22], path_to_network_weights)
+        self.network.load_weights(path_to_network_weights)
 
     def load_image(self, file_image_name):
         image = cv2.imread(file_image_name)
@@ -25,8 +25,7 @@ class RecognitionCarPlate:
 
     def __find_number_plates_on_origin_image(self):
         self.car_numbers = []
-        # print(os.path.join(os.getcwd(), '..', 'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
-        russian_number_cascade = cv2.CascadeClassifier(os.path.join(os.getcwd(), '..', 'xml-car-numbers', 'haarcascade_russian_plate_number.xml'))
+        russian_number_cascade = cv2.CascadeClassifier(path_to_haarcascade)
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
@@ -352,7 +351,6 @@ class RecognitionCarPlate:
             if np.mean(car_number.region_image.image[i]) == 255.:
                 car_number.region_image = car_number.region_image.crop(0, 0, car_number.region_image.width, i)
                 break
-        # TODO решить проблему с путями
         car_number.region, _ = self.splitting_binarized_image_into_numbers(car_number.region_image)
         car_number.clear_region()
 
@@ -393,9 +391,9 @@ class RecognitionCarPlate:
             car_number = self.car_numbers[i]
 
             car_number.image = self.__normalize_image(car_number.image)
-            car_number.image.show("CROPPED")
+            # car_number.image.show("CROPPED")
             self.__increase_image_contrast(car_number.image)
-            car_number.image.show("CONTRAST")
+            # car_number.image.show("CONTRAST")
             car_number.image = self.crop_side_edges_of_the_image_2(car_number.image)
             # car_number.image.show("CROPPED BY EDGES")
 
@@ -414,10 +412,9 @@ class RecognitionCarPlate:
             result = []
             for char in car_number.series_and_registration_num+car_number.region:
                 char.resize((27, 36))
-                char: MyImage
                 array_image = char.to_array()
                 result.append(possible_values[np.argmax(self.network.feedforward(array_image))])
             recognised_car_numbers.append(result)
-            print("Распознано")
-            print(result)
+            # print("Распознано")
+            # print(result)
         return recognised_car_numbers
