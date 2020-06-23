@@ -20,12 +20,12 @@ class RecognitionCarPlate:
         self.network.load_weights(path_to_network_weights)
 
     def load_image(self, file_image_name):
-        image = cv2.imread(file_image_name)
+        image = cv2.imdecode(np.fromfile(file_image_name, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
         self.origin = MyImage(image)
 
     def __find_number_plates_on_origin_image(self):
         self.car_numbers = []
-        russian_number_cascade = cv2.CascadeClassifier(path_to_haarcascade)
+        russian_number_cascade = cv2.CascadeClassifier(os.path.relpath(path_to_haarcascade))
         russian_number_plate_rect = russian_number_cascade.detectMultiScale(self.origin.grayscale(), scaleFactor=1.2,
                                                                             minNeighbors=2)
 
@@ -107,12 +107,11 @@ class RecognitionCarPlate:
                                 continue
                             tangent_of_lines.append((y2 - y1) / (x2 - x1))
                             free_members_of_lines.append(y1 - tangent_of_lines[-1] * x1)
-
                     average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
                     bounds.append(average_line)
 
                     cv2.line(image_copy.image, (0, int(average_line[1])),
-                             (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0), 3)
+                             (image.width, int(average_line[0] * image.width + average_line[1])), (0, 255, 0), 10)
             # image_copy.show("TWO MAIN LINES")
 
         return bounds
@@ -120,6 +119,7 @@ class RecognitionCarPlate:
     def __normalize_image(self, image: MyImage) -> MyImage:
         # ---------- rotate image -----------------
         bounds = self.__find_lines_with_hough_lines_p(image)
+
         if not bounds:
             return image
 
@@ -271,12 +271,12 @@ class RecognitionCarPlate:
                 end = i
                 break
 
-        image = image.crop(0, start, image.width, end)
+        if start < end:
+            image = image.crop(0, start, image.width, end)
 
         left_edge_of_char = None
         series_and_reg_num = []
 
-        # TODO сделать обрезку белому месту вместо чёрной палки
         left_edge_of_region = None
         region = None
 
@@ -389,7 +389,6 @@ class RecognitionCarPlate:
         self.__find_number_plates_on_origin_image()
         for i in range(len(self.car_numbers)-1, -1, -1):
             car_number = self.car_numbers[i]
-
             car_number.image = self.__normalize_image(car_number.image)
             # car_number.image.show("CROPPED")
             self.__increase_image_contrast(car_number.image)
