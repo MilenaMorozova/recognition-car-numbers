@@ -105,8 +105,14 @@ class RecognitionCarPlate:
                             # cv2.line(image_copy.image, (x1, y1), (x2, y2), (0, 255, 0), 5)
                             if x2 == x1:
                                 continue
-                            tangent_of_lines.append((y2 - y1) / (x2 - x1))
-                            free_members_of_lines.append(y1 - tangent_of_lines[-1] * x1)
+
+                            tangent = (y2 - y1) / (x2 - x1)
+
+                            if -0.4 <= tangent <= 0.4:
+                                tangent_of_lines.append(tangent)
+
+                                free_members_of_lines.append(y1 - tangent * x1)
+
                     average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
                     bounds.append(average_line)
 
@@ -119,7 +125,6 @@ class RecognitionCarPlate:
     def __normalize_image(self, image: MyImage) -> MyImage:
         # ---------- rotate image -----------------
         bounds = self.__find_lines_with_hough_lines_p(image)
-
         if not bounds:
             return image
 
