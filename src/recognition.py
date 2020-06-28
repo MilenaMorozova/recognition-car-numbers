@@ -113,6 +113,8 @@ class RecognitionCarPlate:
 
                                 free_members_of_lines.append(y1 - tangent * x1)
 
+                    if not tangent_of_lines:
+                        continue
                     average_line = [np.mean(tangent_of_lines), np.mean(free_members_of_lines)]  # find average line
                     bounds.append(average_line)
 
